@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modeltime_resample_py"
+version = "0.0.1"
+authors = [
+  { name="Your Name", email="you@example.com" }, # Replace with actual author info
+]
+description = "Python implementation of time series resampling methods inspired by R's modeltime.resample package."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Choose appropriate license
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Framework :: Pandas",
+]
+dependencies = [
+    "pandas>=1.0.0",
+    "numpy>=1.18.0",
+    "scikit-learn>=0.22.0",
+    "matplotlib>=3.3.0", # Add matplotlib for plotting
+    # Add seaborn later if plotting is implemented
+]
+
+[project.urls]
+"Homepage" = "https://github.com/your_username/modeltime_resample_py" # Replace with actual URL
+"Bug Tracker" = "https://github.com/your_username/modeltime_resample_py/issues" # Replace with actual URL
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.10",
+] 
