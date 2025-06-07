@@ -1,0 +1,14 @@
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+
+recursive-include modeltime_resample_py *.py
+recursive-include tests *.py
+recursive-include docs *.md *.rst
+
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.swp
+global-exclude .DS_Store
+global-exclude __pycache__ 
