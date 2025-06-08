@@ -17,9 +17,7 @@ from modeltime_resample_py import (
     time_series_cv,
     fit_resamples,
     resample_accuracy,
-    create_interactive_dashboard,
-    plot_model_comparison_matrix,
-    create_comparison_report
+    create_interactive_dashboard
 )
 
 
@@ -146,45 +144,13 @@ def main():
     for (model, metric), value in avg_metrics.items():
         print(f"   {model:20s} {metric:5s}: {value:.3f}")
     
-    # 6. Create visualizations
-    print("\n6. Creating model comparison visualizations...")
+    # 6. Display model performance summary
+    print("\n6. Model performance summary:")
+    summary = accuracy.groupby(['model_id', 'metric_name'])['metric_value'].agg(['mean', 'std'])
+    print(summary.round(3))
     
-    # Heatmap
-    print("   - Creating heatmap...")
-    heatmap_fig = plot_model_comparison_matrix(
-        accuracy_df=accuracy,
-        plot_type='heatmap',
-        title='Model Performance Comparison'
-    )
-    heatmap_fig.write_html('simple_comparison_heatmap.html')
-    print("     Saved: simple_comparison_heatmap.html")
-    
-    # Radar chart
-    print("   - Creating radar chart...")
-    radar_fig = plot_model_comparison_matrix(
-        accuracy_df=accuracy,
-        plot_type='radar',
-        title='Model Performance Radar'
-    )
-    radar_fig.write_html('simple_comparison_radar.html')
-    print("     Saved: simple_comparison_radar.html")
-    
-    # 7. Create comparison report
-    print("\n7. Creating comparison report...")
-    report = create_comparison_report(
-        accuracy_df=accuracy,
-        output_path='simple_comparison_report.html',
-        include_plots=['heatmap', 'radar'],
-        title='Model Comparison Report'
-    )
-    print("   Report saved: simple_comparison_report.html")
-    
-    # Display rankings
-    print("\n   Model Rankings:")
-    print(report['rankings'])
-    
-    # 8. Create interactive dashboard
-    print("\n8. Creating interactive dashboard...")
+    # 7. Create interactive dashboard
+    print("\n7. Creating interactive dashboard...")
     dashboard = create_interactive_dashboard(
         resamples_df=results,
         accuracy_df=accuracy,
@@ -192,10 +158,7 @@ def main():
     )
     
     print("\n" + "=" * 50)
-    print("Demo complete! Generated files:")
-    print("  - simple_comparison_heatmap.html")
-    print("  - simple_comparison_radar.html")
-    print("  - simple_comparison_report.html")
+    print("Demo complete!")
     print("\nTo view the interactive dashboard, run:")
     print("  dashboard.run(port=8050)")
     print("Then open http://localhost:8050 in your browser.")

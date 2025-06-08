@@ -31,7 +31,7 @@ from .convenience import evaluate_model, compare_models
 # Advanced visualization
 from .visualization.dashboard import (
     create_interactive_dashboard,
-    ResamplesDashboard
+    EnhancedResamplesDashboard
 )
 from .visualization.comparison import (
     plot_model_comparison_matrix,
@@ -69,7 +69,7 @@ __all__ = [
     'compare_models',
     # Advanced visualization
     'create_interactive_dashboard',
-    'ResamplesDashboard',
+    'EnhancedResamplesDashboard',
     'plot_model_comparison_matrix',
     'create_comparison_report'
 ]
