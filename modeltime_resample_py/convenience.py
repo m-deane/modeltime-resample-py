@@ -189,7 +189,9 @@ def compare_models(
 def quick_cv_split(
     data: Union[pd.DataFrame, pd.Series],
     test_size: Union[str, int] = '3 months',
-    date_column: Optional[str] = None
+    date_column: Optional[str] = 'date',
+    target_column: Optional[str] = None,
+    feature_columns: Optional[List[str]] = None
 ) -> tuple:
     """
     Quick single train/test split for time series.
@@ -198,37 +200,94 @@ def quick_cv_split(
     
     Args:
         data: Time series data
-        test_size: Size of test set
+        test_size: Size of test set (as periods from end of data)
         date_column: Date column name if DataFrame
+        target_column: Target variable column name
+        feature_columns: Feature columns for X data
         
     Returns:
-        Tuple of (train_data, test_data)
+        Tuple of (X_train, X_test, y_train, y_test, X_forecast, y_forecast)
         
     Example:
-        >>> train, test = quick_cv_split(data, test_size='1 month')
-        >>> model.fit(train[features], train[target])
-        >>> predictions = model.predict(test[features])
+        >>> X_train, X_test, y_train, y_test, _, _ = quick_cv_split(data, test_size='1 month')
+        >>> model.fit(X_train, y_train)
+        >>> predictions = model.predict(X_test)
     """
     from .core.splits import time_series_split
     
-    # Calculate initial size
-    if isinstance(data, pd.Series):
-        n_total = len(data)
-    else:
-        n_total = len(data)
+    # Calculate split points based on test_size
+    if isinstance(data, pd.DataFrame):
+        if date_column not in data.columns:
+            raise ValueError(f"Date column '{date_column}' not found in DataFrame")
+        
+        # Convert date column to datetime if needed
+        data_copy = data.copy()
+        data_copy[date_column] = pd.to_datetime(data_copy[date_column])
+        dates = data_copy[date_column].sort_values()
+        
+        # Calculate train_end as the split point before test data
+        if isinstance(test_size, int):
+            # test_size is number of periods
+            train_end_idx = len(dates) - test_size - 1
+            if train_end_idx < 0:
+                raise ValueError(f"test_size ({test_size}) is larger than data length ({len(dates)})")
+            train_end = dates.iloc[train_end_idx]
+            test_start = dates.iloc[train_end_idx + 1]
+        else:
+            # test_size is a time period string
+            max_date = dates.max()
+            # Use pandas offset to calculate start of test period
+            from pandas.tseries.frequencies import to_offset
+            offset = to_offset(test_size)
+            test_start = max_date - offset
+            
+            # Find the closest actual date before test_start
+            train_end_candidates = dates[dates < test_start]
+            if len(train_end_candidates) == 0:
+                raise ValueError(f"test_size '{test_size}' covers entire dataset")
+            train_end = train_end_candidates.max()
+            
+            # Find actual test_start date
+            test_start_candidates = dates[dates > train_end]
+            if len(test_start_candidates) == 0:
+                test_start = max_date
+            else:
+                test_start = test_start_candidates.min()
     
-    # For string test_size, we need to work backwards
-    if isinstance(test_size, str):
-        # This is a simplification - ideally we'd calculate exactly
-        # For now, use a reasonable default
-        initial = n_total - 100  # Rough estimate
-    else:
-        initial = n_total - test_size
+    else:  # Series
+        if not isinstance(data.index, pd.DatetimeIndex):
+            raise ValueError("Series must have DatetimeIndex")
+        
+        dates = data.index.sort_values()
+        if isinstance(test_size, int):
+            train_end_idx = len(dates) - test_size - 1
+            if train_end_idx < 0:
+                raise ValueError(f"test_size ({test_size}) is larger than data length ({len(dates)})")
+            train_end = dates[train_end_idx]
+            test_start = dates[train_end_idx + 1]
+        else:
+            max_date = dates.max()
+            from pandas.tseries.frequencies import to_offset
+            offset = to_offset(test_size)
+            test_start = max_date - offset
+            
+            train_end_candidates = dates[dates < test_start]
+            if len(train_end_candidates) == 0:
+                raise ValueError(f"test_size '{test_size}' covers entire dataset")
+            train_end = train_end_candidates.max()
+            
+            test_start_candidates = dates[dates > train_end]
+            if len(test_start_candidates) == 0:
+                test_start = max_date
+            else:
+                test_start = test_start_candidates.min()
     
     return time_series_split(
         data=data,
-        initial=initial,
-        assess=test_size,
-        cumulative=False,
-        date_column=date_column
+        train_end=train_end,
+        test_start=test_start,
+        test_end=dates.max(),
+        date_col=date_column,
+        X_vars=feature_columns,
+        y_var=target_column
     ) 

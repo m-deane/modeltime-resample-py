@@ -177,108 +177,177 @@ def _get_skip_count(skip: Union[str, int], time_index: pd.DatetimeIndex, current
         raise TypeError("Skip must be an integer or a time period string.")
 
 def time_series_split(
-    data: Union[pd.DataFrame, pd.Series],
-    initial: Union[str, int],
-    assess: Union[str, int],
-    cumulative: bool = False,
-    date_column: Optional[str] = None
-) -> Tuple[Union[pd.DataFrame, pd.Series], Union[pd.DataFrame, pd.Series]]:
+    data,
+    train_start=None,
+    train_end=None,
+    test_start=None,
+    test_end=None,
+    forecast_start=None,
+    forecast_end=None,
+    date_col='date',
+    group_col=None,
+    frequency=None,
+    X_vars=None,
+    y_var=None
+):
     """
-    Creates a single binary split of the time series into training and testing sets.
-    Mimics the behavior of `rsample::initial_time_split` or the first split of `time_series_cv`.
-
-    Args:
-        data: A pandas DataFrame or Series with a DatetimeIndex or a date column.
-        initial: The amount of data initially used for training. Can be specified as:
-            - An integer: Number of samples.
-            - A string: Time period (e.g., '5 years', '6 months', '50 days').
-        assess: The amount of data used for the assessment/testing set. Specified similarly to `initial`.
-        cumulative: If `False` (default), the training set size is fixed at `initial`.
-                    If `True`, the training set size grows in subsequent splits (though this function only produces one split).
-                    This parameter primarily influences how the split point is determined based on `initial` and `assess` when
-                    these are specified as time periods relative to the *end* of the series.
-        date_column: The name of the column containing the date information if `data` is a DataFrame
-                     and does not have a DatetimeIndex. If `None`, the index is assumed to be the date.
-
-    Returns:
-        A tuple containing the training DataFrame/Series and the testing DataFrame/Series.
-
-    Raises:
-        ValueError: If input data, indices, or parameters are invalid.
-        TypeError: If `data` is not a pandas DataFrame or Series.
+    Split time series data into training, testing and forecast sets.
+    
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input dataframe containing time series data
+    train_start : str or int, optional
+        Start date for training data. If int, number of periods from start
+    train_end : str or int, optional
+        End date for training data. If int, number of periods from start
+    test_start : str or int, optional
+        Start date for test data. If int, number of periods from start
+    test_end : str or int, optional
+        End date for test data. If int, number of periods from start
+    forecast_start : str or int, optional
+        Start date for forecast data. If int, number of periods from start
+    forecast_end : str or int, optional
+        End date for forecast data. If int, number of periods from start
+    date_col : str, default='date'
+        Name of the date column
+    group_col : str, optional
+        Name of the grouping column if data is grouped
+    frequency : str, optional
+        Frequency of the time series (e.g. 'D' for daily, 'M' for monthly)
+    X_vars : list of str, optional
+        List of column names to use as features. If None, uses all columns except date_col and y_var
+    y_var : str, optional
+        Name of the target variable column. If None, uses date_col as target
+        
+    Returns
+    -------
+    tuple
+        (X_train, X_test, y_train, y_test, X_forecast, y_forecast) where each element is a DataFrame
+        indexed by date (and group_col if specified)
     """
-    if not isinstance(data, (pd.DataFrame, pd.Series)):
-        raise TypeError("Input 'data' must be a pandas DataFrame or Series.")
-
-    if not isinstance(initial, (int, str)):
-        raise TypeError("'initial' must be an integer or a time period string.")
-    if not isinstance(assess, (int, str)):
-        raise TypeError("'assess' must be an integer or a time period string.")
-
-    # --- Index Preparation and Sorting (with warnings) ---
-    original_data = data
-    if date_column:
-        if date_column not in data.columns:
-            raise ValueError(f"Date column '{date_column}' not found in DataFrame.")
-        if not pd.api.types.is_datetime64_any_dtype(data[date_column]):
-             raise ValueError(f"Date column '{date_column}' must be of datetime type.")
-        time_index = pd.DatetimeIndex(data[date_column])
-        if not time_index.is_monotonic_increasing:
-             warnings.warn("Date column is not monotonically increasing. Sorting data by date.", UserWarning)
-             # Use numpy argsort on the index for potentially faster sorting index retrieval
-             sorted_indices = np.argsort(time_index)
-             data = original_data.iloc[sorted_indices].reset_index(drop=True)
-             time_index = pd.DatetimeIndex(data[date_column]) # Update index after sorting
-    elif isinstance(data.index, pd.DatetimeIndex):
-        time_index = data.index
-        if not time_index.is_monotonic_increasing:
-             warnings.warn("DatetimeIndex is not monotonically increasing. Sorting data by index.", UserWarning)
-             data = original_data.sort_index()
-             time_index = data.index
+    from pandas.tseries.frequencies import to_offset
+    
+    # Make a copy of the data
+    df = data.copy()
+    
+    # Convert date column to datetime if not already
+    df[date_col] = pd.to_datetime(df[date_col])
+    
+    # Set default X_vars and y_var if not provided
+    if X_vars is None:
+        X_vars = [col for col in df.columns if col not in [date_col, y_var]]
+    if y_var is None:
+        y_var = date_col
+    
+    # Infer frequency if not provided
+    if frequency is None:
+        # Sort dates and get unique values to avoid duplicates
+        unique_dates = df[date_col].sort_values().unique()
+        frequency = pd.infer_freq(unique_dates)
+        if frequency is None:
+            time_diffs = pd.Series(unique_dates).diff().dropna()
+            if len(time_diffs) > 0:
+                frequency = time_diffs.mode().iloc[0]
+            else:
+                raise ValueError("Could not infer frequency from data. Please provide frequency parameter.")
+    
+    # Convert frequency to pandas offset
+    freq_offset = to_offset(frequency)
+    
+    # Function to convert relative integers to dates
+    def convert_to_date(value, ref_date, is_start=True):
+        if isinstance(value, (int, np.integer)):
+            if is_start:
+                return ref_date + (value * freq_offset)
+            else:
+                return ref_date + ((value + 1) * freq_offset)
+        return pd.to_datetime(value)
+    
+    # Get reference date (earliest date in dataset)
+    ref_date = df[date_col].min()
+    
+    # Convert relative integers to dates if needed
+    train_start = convert_to_date(train_start, ref_date, True) if train_start is not None else ref_date
+    train_end = convert_to_date(train_end, ref_date, False) if train_end is not None else df[date_col].max()
+    test_start = convert_to_date(test_start, ref_date, True) if test_start is not None else train_end + freq_offset
+    test_end = convert_to_date(test_end, ref_date, False) if test_end is not None else df[date_col].max()
+    forecast_start = convert_to_date(forecast_start, ref_date, True) if forecast_start is not None else test_end + freq_offset
+    forecast_end = convert_to_date(forecast_end, ref_date, False) if forecast_end is not None else df[date_col].max()
+    
+    # Create future dates for forecast period if needed
+    if forecast_end > df[date_col].max():
+        future_dates = pd.date_range(
+            start=df[date_col].max() + freq_offset,
+            end=forecast_end,
+            freq=frequency
+        )
+        
+        if group_col is not None:
+            # Create future rows for each group
+            future_rows = []
+            for group in df[group_col].unique():
+                for date in future_dates:
+                    future_row = {date_col: date, group_col: group}
+                    future_row.update({col: np.nan for col in df.columns if col not in [date_col, group_col]})
+                    future_rows.append(future_row)
+            future_df = pd.DataFrame(future_rows)
+            df = pd.concat([df, future_df], ignore_index=True)
+        else:
+            # Create future rows for ungrouped data
+            future_df = pd.DataFrame({date_col: future_dates})
+            future_df = future_df.reindex(columns=df.columns)
+            df = pd.concat([df, future_df], ignore_index=True)
+    
+    # Function to split data for a single group
+    def split_group(group_df):
+        # Split into train/test/forecast
+        train_mask = (group_df[date_col] >= train_start) & (group_df[date_col] <= train_end)
+        test_mask = (group_df[date_col] >= test_start) & (group_df[date_col] <= test_end)
+        forecast_mask = (group_df[date_col] >= forecast_start) & (group_df[date_col] <= forecast_end)
+        
+        # Get X and y for each split
+        X_train = group_df[train_mask][X_vars].copy()
+        y_train = pd.DataFrame({y_var: group_df[train_mask][y_var]})
+        
+        X_test = group_df[test_mask][X_vars].copy()
+        y_test = pd.DataFrame({y_var: group_df[test_mask][y_var]})
+        
+        X_forecast = group_df[forecast_mask][X_vars].copy()
+        y_forecast = pd.DataFrame({y_var: group_df[forecast_mask][y_var]})
+        
+        # Set index
+        if group_col is not None:
+            group_val = group_df[group_col].iloc[0]
+            for df in [X_train, y_train, X_test, y_test, X_forecast, y_forecast]:
+                df.index = pd.MultiIndex.from_arrays(
+                    [[group_val] * len(df), group_df.loc[df.index, date_col]],
+                    names=[group_col, date_col]
+                )
+        else:
+            for df in [X_train, y_train, X_test, y_test, X_forecast, y_forecast]:
+                df.index = group_df.loc[df.index, date_col]
+                df.index.name = date_col
+        
+        return X_train, X_test, y_train, y_test, X_forecast, y_forecast
+    
+    if group_col is not None:
+        # Handle grouped data
+        groups = df[group_col].unique()
+        results = {group: split_group(df[df[group_col] == group]) for group in groups}
+        
+        # Combine results from all groups
+        X_train = pd.concat([r[0] for r in results.values()])
+        X_test = pd.concat([r[1] for r in results.values()])
+        y_train = pd.concat([r[2] for r in results.values()])
+        y_test = pd.concat([r[3] for r in results.values()])
+        X_forecast = pd.concat([r[4] for r in results.values()])
+        y_forecast = pd.concat([r[5] for r in results.values()])
     else:
-        raise ValueError("Data must have a DatetimeIndex or a valid 'date_column' specified.")
-
-    n_total = len(data)
-    idx = np.arange(n_total)
-
-    # --- Calculate and Validate Initial Training Size ---
-    try:
-        n_initial = _get_sample_count(initial, time_index, 0, n_total)
-    except ValueError as e:
-         # Catch errors from _get_sample_count (e.g., zero period, invalid string)
-         raise ValueError(f"Error calculating initial training size for '{initial}': {e}")
-
-    if n_initial <= 0:
-         # This case might be caught by _get_sample_count, but double check
-         raise ValueError(f"'initial' period/count results in zero or negative training samples ({n_initial}).")
-    if n_initial >= n_total:
-         raise ValueError(f"'initial' period/count ('{initial}') results in training set size ({n_initial}) that covers or exceeds total samples ({n_total}).")
-
-    # --- Calculate and Validate Assessment Size ---
-    try:
-        # Assess size is calculated starting *after* the initial block
-        n_assess = _get_sample_count(assess, time_index, n_initial, n_total)
-    except ValueError as e:
-         # Catch errors like zero period or insufficient remaining data for the period
-         raise ValueError(f"Error calculating assessment size for '{assess}' after initial {n_initial} samples: {e}")
-
-    if n_assess <= 0:
-         # This case should ideally be caught by _get_sample_count raising error for 0 samples
-         raise ValueError(f"'assess' period/count ('{assess}') results in zero or negative testing samples ({n_assess}) after initial training set (size {n_initial}).")
-
-    # Final check if calculated initial + assess exceeds total (redundant if _get_sample_count is correct)
-    if n_initial + n_assess > n_total:
-         raise ValueError(f"The sum of calculated initial ({n_initial}) and assess ({n_assess}) samples exceeds the total number of samples ({n_total}). This may indicate an issue with period calculation near the end of the series.")
-
-    # --- Define split indices ---
-    train_indices = idx[:n_initial]
-    test_indices = idx[n_initial : n_initial + n_assess]
-
-    # --- Slice the data ---
-    train_data = data.iloc[train_indices]
-    test_data = data.iloc[test_indices]
-
-    return train_data, test_data
+        # Handle ungrouped data
+        X_train, X_test, y_train, y_test, X_forecast, y_forecast = split_group(df)
+    
+    return X_train, X_test, y_train, y_test, X_forecast, y_forecast
 
 def time_series_cv(
     data: Union[pd.DataFrame, pd.Series],

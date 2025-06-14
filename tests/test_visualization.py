@@ -15,7 +15,7 @@ from modeltime_resample_py import (
     plot_model_comparison_matrix,
     create_comparison_report
 )
-from modeltime_resample_py.visualization.dashboard import ResamplesDashboard
+from modeltime_resample_py.visualization.dashboard import EnhancedResamplesDashboard
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 
@@ -80,7 +80,7 @@ class TestDashboard:
             title="Test Dashboard"
         )
         
-        assert isinstance(dashboard, ResamplesDashboard)
+        assert isinstance(dashboard, EnhancedResamplesDashboard)
         assert dashboard.title == "Test Dashboard"
         assert dashboard.app is not None
     
@@ -91,12 +91,12 @@ class TestDashboard:
             accuracy_df=None
         )
         
-        assert isinstance(dashboard, ResamplesDashboard)
+        assert isinstance(dashboard, EnhancedResamplesDashboard)
         assert dashboard.accuracy_df is None
     
     def test_dashboard_layout(self, sample_results):
         """Test dashboard layout is created properly."""
-        dashboard = ResamplesDashboard(sample_results)
+        dashboard = EnhancedResamplesDashboard(sample_results)
         
         # Check layout components exist
         assert dashboard.app.layout is not None

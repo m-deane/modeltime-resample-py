@@ -30,14 +30,18 @@ dates = pd.date_range(start='2020-01-01', periods=365, freq='D')
 values = np.random.randn(365).cumsum()
 data = pd.Series(values, index=dates, name='value')
 
-# Create a single train/test split
-train, test = time_series_split(
-    data,
-    initial='9 months',  # Training set size
-    assess='3 months'    # Test set size
+# Create a single train/test split using new signature
+X_train, X_test, y_train, y_test, X_forecast, y_forecast = time_series_split(
+    data.to_frame(),        # Convert Series to DataFrame
+    train_end='2020-09-30', # End training on Sept 30
+    test_start='2020-10-01', # Start test on Oct 1
+    test_end='2020-12-31',  # End test on Dec 31
+    date_col='date',        # Date column (will be created from index)
+    y_var='value'          # Target variable
 )
 
-print(f"Train size: {len(train)}, Test size: {len(test)}")
+print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
+print(f"Features: {list(X_train.columns)}, Target: {list(y_train.columns)}")
 ```
 
 ### 2. Time Series Cross-Validation

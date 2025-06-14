@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modeltime_resample_py"
-version = "0.0.1"
+version = "0.2.0"
 authors = [
-  { name="Your Name", email="you@example.com" }, # Replace with actual author info
+  { name="ModelTime Contributors", email="contributors@modeltime-resample-py.org" },
 ]
-description = "Python implementation of time series resampling methods inspired by R's modeltime.resample package."
+description = "A Python package for time series cross-validation, resampling, model fitting, and evaluation inspired by R's modeltime.resample package."
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
@@ -73,10 +73,10 @@ all = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your_username/modeltime_resample_py" # Replace with actual URL
-"Bug Tracker" = "https://github.com/your_username/modeltime_resample_py/issues" # Replace with actual URL
+"Homepage" = "https://github.com/modeltime-contributors/py-modeltime-resample"
+"Bug Tracker" = "https://github.com/modeltime-contributors/py-modeltime-resample/issues"
 "Documentation" = "https://modeltime-resample-py.readthedocs.io"
-"Source Code" = "https://github.com/your_username/modeltime_resample_py"
+"Source Code" = "https://github.com/modeltime-contributors/py-modeltime-resample"
 
 [tool.setuptools.packages.find]
 where = ["."]

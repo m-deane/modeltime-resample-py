@@ -2,10 +2,11 @@
 
 A Python package for time series cross-validation, resampling, model fitting, and evaluation, inspired by the R `modeltime.resample` and `rsample` packages.
 
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/modeltime-resample-py/badge/?version=latest)](https://modeltime-resample-py.readthedocs.io/en/latest/?badge=latest)
-[![CI](https://github.com/your_username/modeltime-resample-py/workflows/CI/badge.svg)](https://github.com/your_username/modeltime-resample-py/actions)
 <!-- [![PyPI version](https://badge.fury.io/py/modeltime-resample-py.svg)](https://badge.fury.io/py/modeltime-resample-py) -->
-<!-- [![codecov](https://codecov.io/gh/your_username/modeltime-resample-py/branch/main/graph/badge.svg)](https://codecov.io/gh/your_username/modeltime-resample-py) -->
+<!-- [![CI](https://github.com/modeltime-contributors/py-modeltime-resample/workflows/CI/badge.svg)](https://github.com/modeltime-contributors/py-modeltime-resample/actions) -->
 
 ## Overview
 
@@ -46,8 +47,8 @@ A Python package for time series cross-validation, resampling, model fitting, an
 Currently, you can install the package directly from the source:
 
 ```bash
-git clone https://your-repository-url/modeltime-resample-py.git # Replace with your repo URL
-cd modeltime-resample-py
+git clone https://github.com/modeltime-contributors/py-modeltime-resample.git
+cd py-modeltime-resample
 pip install -e .
 ```
 

@@ -2,7 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2024-XX-XX
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] - 2024-12-13
+
+### Added
+- **Package Refactoring and Cleanup**
+  - Removed unnecessary archived R package files from `_archive/` directory
+  - Cleaned up redundant demo files from root directory
+  - Consolidated examples into organized `examples/` directory
+  - Standardized package metadata and configuration
+
+### Changed
+- **Package Configuration**
+  - Updated `pyproject.toml` with proper metadata and URLs
+  - Improved package description and author information
+  - Updated README.md with corrected installation instructions and badges
+  - Removed redundant `USAGE_EXAMPLES.md` file
+
+### Removed
+- Entire `_archive/` directory containing R package files
+- Redundant demo files: `app.py`, `dashboard_example.py`, `demo_separate_plots.py`, etc.
+- Temporary files and system files (`.DS_Store`)
+- Duplicate example files in examples directory
 
 ### Added - High Priority Items
 - **Restructured Package Organization**

@@ -1763,4 +1763,4 @@ def test_resample_accuracy_period_type_invalid(sample_resamples_df):
         resample_accuracy(sample_resamples_df, period_types_to_evaluate=['unknown'])
 
     # Test with a period_type that is not in the resamples_df
-    with pytest.raises(ValueError, match="Invalid period_type 'unknown' in period_types_to_evaluate."):
+    with pytest.raises(ValueError, match="Invalid period_type 'unknown' in period_types_to_evaluate."):        resample_accuracy(sample_resamples_df, period_types_to_evaluate=['unknown'])
